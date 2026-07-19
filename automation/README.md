@@ -1,10 +1,10 @@
 ---
 id: doc.automation-readme
 kind: doc
-version: 0.1.0
+version: 0.2.0
 status: active
 owner: architect
-updated: 2026-07-18
+updated: 2026-07-19
 ---
 
 # automation/ — *What glue makes this run without humans?*
@@ -31,6 +31,15 @@ code (see [`../docs/roadmap.md`](../docs/roadmap.md)).
 | [`protocols/semantic-retrieval.md`](protocols/semantic-retrieval.md) | Assemble the minimal relevant node set | #2 tokens |
 | [`protocols/context-assembly.md`](protocols/context-assembly.md) | Fit retrieved context into budget, with caching | #2 tokens |
 | [`protocols/gate-runner.md`](protocols/gate-runner.md) | Run the evaluation chain, fail-fast | #1 effort, #3 quality |
+
+## Scripts
+
+Reference implementations of invariants that are cheap enough to enforce today (the rest land in
+v0.2). These are wired into [`../pipelines/ci/noesis-invariants.yml`](../pipelines/ci/noesis-invariants.yml).
+
+| Script | Enforces |
+|--------|----------|
+| [`scripts/validate-agents.rb`](scripts/validate-agents.rb) | Every `agents/specs/*.agent.yaml` validates against `agents/agent.schema.yaml` (CI invariant #2). Run: `ruby automation/scripts/validate-agents.rb`. |
 
 ## The pipeline they form
 

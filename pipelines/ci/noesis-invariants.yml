@@ -23,10 +23,12 @@ jobs:
           echo "validate - frontmatter present + well-formed on specs/prompts/templates/gates"
 
       # 2. Structured artifacts validate against their schemas.
+      #    Agent specs are enforced for real (ruby is preinstalled on ubuntu-latest);
+      #    graph-schema validation is still a v0.2 stub (see docs/roadmap.md).
       - name: schemas
         run: |
-          echo "validate - agents/specs/* against agents/agent.schema.yaml"
-          echo "validate - graphs/*.json against graphs/schemas/graph.schema.json"
+          ruby automation/scripts/validate-agents.rb
+          echo "TODO(v0.2) validate - graphs/*.json against graphs/schemas/graph.schema.json"
 
       # 3. Graph integrity — the retrieval index must be trustworthy.
       - name: graph-integrity
