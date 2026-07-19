@@ -1,0 +1,79 @@
+# Noesis — operating system configuration.
+# The single control plane. Projects override values here; they never fork the OS to tune it.
+# Every consumer (agents, automation, pipelines) reads this file. No hard-coded budgets elsewhere.
+
+version: 0.1.0
+
+# ---------------------------------------------------------------------------
+# Identity of the project booting on top of Noesis.
+# ---------------------------------------------------------------------------
+project:
+  name: "REPLACE_ME"
+  slug: "replace-me"
+  # Where this project's *content* lives, relative to the repo that vendors Noesis.
+  # Noesis stays domain-neutral; per-project state is written under these roots.
+  memory_root: "memory/"
+  knowledge_root: "knowledge/"
+  artifacts_root: "artifacts/"
+
+# ---------------------------------------------------------------------------
+# Model routing. Cheapest model that clears the bar for each tier of work.
+# Objective #2 (−90% tokens) starts here: do not send hard-model work to a cheap
+# model (rework is expensive) or easy work to an expensive one (waste).
+# ---------------------------------------------------------------------------
+models:
+  # Tiers are logical; map them to whatever provider IDs you run.
+  reasoning:      { id: "claude-opus-4-8",  use: "architecture, design, hard review" }
+  workhorse:      { id: "claude-sonnet-5",  use: "implementation, most agents" }
+  fast:           { id: "claude-haiku-4-5", use: "indexing, summarization, retrieval, classification" }
+  default_tier: workhorse
+
+# ---------------------------------------------------------------------------
+# Token economics. Budgets are contracts, not suggestions. An agent that blows
+# its budget fails its acceptance criteria and the gate rejects the run.
+# ---------------------------------------------------------------------------
+tokens:
+  # Hard ceiling for a single agent invocation's assembled context.
+  context_budget_default: 30000
+  # Retrieval must justify every token. If the assembled context exceeds the
+  # budget, automation/protocols/context-assembly.md compresses or splits.
+  compression_threshold: 0.8   # start compressing at 80% of budget
+  # Cache reuse target — fraction of context served from the prompt cache.
+  cache_hit_target: 0.5
+
+# ---------------------------------------------------------------------------
+# Retrieval. The heart of token efficiency. Never whole-repo.
+# ---------------------------------------------------------------------------
+retrieval:
+  strategy: graph_first          # walk graphs/ before touching source
+  max_files_per_query: 12        # a hard fan-out cap; summaries beyond this
+  summary_levels: [repo, module, file, symbol]  # hierarchical zoom
+  semantic_index: graphs/knowledge-graph.json
+  change_detection: git_diff     # only re-index what changed
+
+# ---------------------------------------------------------------------------
+# The evaluation chain. No artifact is accepted until it passes its gates.
+# Order matters: cheap gates fail fast before expensive ones run.
+# ---------------------------------------------------------------------------
+evaluation:
+  chain: [builder, reviewer, architecture, security, testing, human]
+  fail_fast: true
+  human_gate:
+    required_for: [architecture_change, security_sensitive, irreversible, budget_overrun]
+    # Everything else can auto-merge if all machine gates pass AND confidence is high.
+    auto_merge_when: { all_machine_gates: pass, min_confidence: 0.85 }
+
+# ---------------------------------------------------------------------------
+# The learning loop. What every merged PR must update. Enforced in CI.
+# ---------------------------------------------------------------------------
+learning:
+  on_merge_update: [knowledge, graphs, memory, prompts, standards, metrics]
+  block_merge_if_knowledge_stale: true
+
+# ---------------------------------------------------------------------------
+# Versioning conventions for OS artifacts.
+# ---------------------------------------------------------------------------
+versioning:
+  scheme: semver
+  frontmatter_required: true     # every spec/prompt/template needs the header
+  append_only: [memory/decisions, memory/rejected-ideas, telemetry]

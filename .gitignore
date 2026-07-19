@@ -1,0 +1,33 @@
+# Noesis — what NOT to version.
+# The OS is convention + contracts. Bulky, regenerable, or secret material stays out.
+
+# Generated run outputs live under artifacts/ and are retained by policy, not by git.
+# We keep the structure and the index, not the payloads.
+artifacts/**/payload/
+artifacts/**/*.bin
+artifacts/**/*.tar.gz
+
+# Local, uncommitted graph builds and embeddings caches (regenerable from source).
+graphs/**/*.cache
+graphs/**/*.embeddings
+graphs/**/build/
+.noesis-cache/
+
+# Telemetry raw dumps (ship to a store; keep only rollups in git).
+telemetry/raw/
+*.trace.jsonl
+
+# Secrets — never. Use your platform's secret manager.
+.env
+.env.*
+*.pem
+*.key
+secrets.*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+node_modules/
+__pycache__/

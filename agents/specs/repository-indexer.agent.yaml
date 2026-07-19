@@ -1,0 +1,43 @@
+id: agent.repository-indexer
+kind: agent
+version: 0.1.0
+status: active
+role: Repository Indexer
+model_tier: fast
+
+purpose: >
+  Build and incrementally maintain the graphs that make token-efficient retrieval possible:
+  module, dependency, architecture, and knowledge graphs, plus the hierarchical summaries
+  (repo → module → file → symbol). Runs on change detection so only what changed is reindexed.
+  Cheap model, high frequency: this agent is a workhorse of Objective #2.
+
+inputs:
+  - { name: changed_files, source: "git diff since last index", required: true }
+  - { name: prior_graphs,  source: "graphs/",                   required: false }
+
+outputs:
+  - { name: module_graph,     kind: graph, destination: "graphs/module-graph.json" }
+  - { name: dependency_graph, kind: graph, destination: "graphs/dependency-graph.json" }
+  - { name: summaries,        kind: graph, destination: "graphs/summaries/" }
+
+context:
+  sources: ["git diff", "graphs/"]
+  retrieval: full_file_allowed   # the indexer is the one agent that may read raw source — that's its job
+
+token_budget: { context_max: 20000, output_max: 8000 }
+
+acceptance_criteria:
+  - "Only changed files and their graph neighbors are reprocessed (incremental, not full re-scan)."
+  - "Every source file has a current one-paragraph summary at file level and a symbol map."
+  - "Graphs are valid against graphs/schemas/ and internally consistent (no dangling edges)."
+  - "Index build cost stays sub-linear in repo size by reusing unchanged nodes."
+
+failure_modes:
+  - mode: "Full re-index on small change (cost blowup)"
+    detection: "Reprocessed file count >> changed file count."
+    mitigation: "Honor change detection; reuse cached nodes for unchanged files."
+  - mode: "Stale edges"
+    detection: "Graph references a symbol that no longer exists."
+    mitigation: "Prune edges for deleted symbols during incremental update."
+
+gates: []   # the indexer feeds gates; it is not itself gated, but its output is schema-validated in CI

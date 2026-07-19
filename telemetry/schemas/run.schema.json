@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noesis/telemetry/run.schema.json",
+  "title": "Agent run telemetry event",
+  "description": "One record per agent invocation. The atom of the OS's self-knowledge; every objective metric aggregates these.",
+  "type": "object",
+  "required": ["run_id", "agent", "prompt", "model_tier", "tokens", "outcome", "started_at"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": { "type": "string", "description": "Unique; links context, gates, and outcome." },
+    "agent": { "type": "string", "description": "agent id, e.g. agent.backend-engineer" },
+    "prompt": { "type": "string", "description": "prompt id@version used, e.g. prompt.reviewer@0.1.0" },
+    "model_tier": { "enum": ["reasoning", "workhorse", "fast", "n/a"] },
+    "stage": { "type": "string", "description": "pipeline stage id" },
+    "tokens": {
+      "type": "object",
+      "required": ["context", "output"],
+      "properties": {
+        "context": { "type": "integer", "description": "assembled context tokens (vs. the agent's budget)" },
+        "output": { "type": "integer" },
+        "cached": { "type": "integer", "description": "tokens served from prompt cache (Objective #2)" },
+        "budget": { "type": "integer", "description": "the agent's context_max, for over/under tracking" }
+      }
+    },
+    "cost_usd": { "type": "number" },
+    "latency_ms": { "type": "integer" },
+    "gates": {
+      "type": "array",
+      "description": "gate outcomes for this run",
+      "items": {
+        "type": "object",
+        "required": ["gate", "verdict"],
+        "properties": {
+          "gate": { "type": "string" },
+          "verdict": { "enum": ["pass", "fail", "n/a"] },
+          "confidence": { "type": "number" }
+        }
+      }
+    },
+    "human_touches": { "type": "integer", "description": "human interactions this run required (Objective #1)" },
+    "rework": { "type": "boolean", "description": "true if this run was a retry after a gate failure" },
+    "outcome": { "enum": ["accepted", "returned", "escalated", "error"] },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" }
+  }
+}

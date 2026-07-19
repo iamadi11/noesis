@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noesis/graphs/graph.schema.json",
+  "title": "Noesis graph",
+  "description": "Shared shape for module/dependency/architecture/knowledge graphs. All four use one node/edge namespace so queries can hop across graphs.",
+  "type": "object",
+  "required": ["graph", "version", "generated_at", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "graph": { "enum": ["module", "dependency", "architecture", "knowledge"] },
+    "version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "generated_by": { "type": "string", "description": "agent id, e.g. agent.repository-indexer" },
+    "source_commit": { "type": "string", "description": "git sha the graph was built from (freshness)" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string", "description": "Stable, namespaced. e.g. module:src/auth/login.ts or arch:component:billing" },
+          "type": { "type": "string", "description": "file|symbol|module|package|component|boundary|concept|decision|artifact" },
+          "label": { "type": "string" },
+          "summary_ref": { "type": "string", "description": "path into graphs/summaries/ for this node's hierarchical summary" },
+          "tokens": { "type": "integer", "description": "approx token cost to load this node's raw source, for budget planning" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "rel"],
+        "additionalProperties": false,
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "rel": { "type": "string", "description": "contains|exports|imports|calls|data-flow|owns|relates|supersedes|evidences" },
+          "weight": { "type": "number", "description": "optional edge strength for ranking retrieval" }
+        }
+      }
+    }
+  }
+}

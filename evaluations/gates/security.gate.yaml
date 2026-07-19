@@ -1,0 +1,26 @@
+id: gate.security
+kind: eval
+version: 0.1.0
+status: active
+stage_position: 4
+blocking: true
+model_tier: reasoning
+judge: agent.security-engineer
+purpose: >
+  Adversarial security and privacy review. Assumes the change is hostile until proven safe.
+  Blocks on any open high/critical finding.
+applies_rubric: rubric.security
+checks:
+  - id: authz
+    check: "Every new endpoint and data path enforces authn/authz."
+  - id: secrets
+    check: "No secret, credential, or PII in code, logs, tests, or fixtures."
+  - id: input_validation
+    check: "Inputs validated at trust boundaries; outputs encoded for their sink."
+  - id: dependencies
+    check: "New/updated dependencies are free of known high/critical vulnerabilities."
+  - id: severity
+    check: "Each finding rated by severity with a concrete remediation."
+pass_when: "no open high or critical findings"
+notes: "Findings are ranked; low-severity noise is capped and logged, not surfaced in bulk."
+emits: template.eval-result

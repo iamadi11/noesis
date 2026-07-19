@@ -1,0 +1,27 @@
+id: gate.architecture
+kind: eval
+version: 0.1.0
+status: active
+stage_position: 3
+blocking: true
+model_tier: reasoning
+judge: agent.architect
+purpose: >
+  Guards architectural integrity across many AI edits — the defense against long-term codebase
+  rot. Runs on changes that touch boundaries, contracts, or system shape. Ensures the change is
+  consistent with the recorded architecture or explicitly supersedes it via an ADR.
+applies_rubric: rubric.architecture
+checks:
+  - id: conformance
+    check: "Change conforms to knowledge/architecture/ OR includes an ADR that supersedes it."
+    on_fail: "Block; require conformance or an explicit ADR in memory/decisions.md."
+  - id: no_reinvention
+    check: "Does not add a component/module the dependency graph shows already exists."
+  - id: boundaries
+    check: "New/changed boundary contracts are registered in knowledge/api-contracts.md."
+  - id: reversibility
+    check: "Irreversible structural changes are flagged for the human gate."
+  - id: trade_off
+    check: "The optimized trade-off is stated (an unstated trade-off is a hidden liability)."
+pass_when: "conformance, no_reinvention, boundaries all pass"
+emits: template.eval-result

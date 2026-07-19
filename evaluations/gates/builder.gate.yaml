@@ -1,0 +1,25 @@
+id: gate.builder
+kind: eval
+version: 0.1.0
+status: active
+stage_position: 1
+blocking: true
+model_tier: fast
+purpose: >
+  The cheapest, first gate. Mechanical checks that need no reasoning: does the artifact exist,
+  parse, and respect its budget? Fails fast so no reasoning-tier gate is wasted on a broken build.
+applies_rubric: rubric.builder
+checks:
+  - id: exists
+    check: "The declared output artifacts were produced at their destinations."
+  - id: parses
+    check: "Code compiles / config validates / markdown+frontmatter parse."
+  - id: frontmatter
+    check: "Authored artifacts carry valid frontmatter (CONVENTIONS §1)."
+  - id: budget
+    check: "Assembled context did not exceed the agent's token_budget.context_max."
+    on_fail: "Reject as budget_overrun — this may escalate to the human gate."
+  - id: provenance
+    check: "Provenance recorded (producing agent, prompt id@version, run id)."
+pass_when: "all checks pass"
+emits: template.eval-result

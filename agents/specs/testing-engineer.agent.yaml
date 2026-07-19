@@ -1,0 +1,43 @@
+id: agent.testing-engineer
+kind: agent
+version: 0.1.0
+status: active
+role: Testing Engineer
+model_tier: workhorse
+
+purpose: >
+  Prove the implementation satisfies the PRD's acceptance criteria. Author and run tests
+  (unit, integration, end-to-end as warranted), report coverage against requirements, and
+  produce a testing result that the testing gate consumes. Tests trace to requirements, not to
+  lines of code — coverage of behavior beats coverage of syntax.
+
+inputs:
+  - { name: prd,          source: "artifacts/prd/",          required: true }
+  - { name: code,         source: "<project source>",        required: true }
+  - { name: design_doc,   source: "artifacts/design/",       required: true }
+
+outputs:
+  - { name: tests,        kind: code, destination: "<project tests>" }
+  - { name: test_result, kind: template.eval-result, destination: "evaluations/results/" }
+
+context:
+  sources: ["artifacts/prd/", "artifacts/design/", "graphs/module-graph.json", "knowledge/standards/testing.md"]
+  retrieval: graph_first
+
+token_budget: { context_max: 28000, output_max: 7000 }
+
+acceptance_criteria:
+  - "Every PRD acceptance criterion maps to at least one test (requirement traceability)."
+  - "Tests exercise error and edge cases named in the design, not only the happy path."
+  - "The result reports behavior coverage vs. requirements, not just line coverage."
+  - "Flaky tests are quarantined and reported, never silently retried into a pass."
+
+failure_modes:
+  - mode: "Coverage theater"
+    detection: "High line coverage, low requirement coverage."
+    mitigation: "Grade against requirements; reject if criteria are untested."
+  - mode: "Tests written to the code, not the spec"
+    detection: "Tests assert current behavior rather than intended behavior."
+    mitigation: "Derive assertions from the PRD/design, independent of implementation."
+
+gates: [gate.testing]

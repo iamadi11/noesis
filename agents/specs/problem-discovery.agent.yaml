@@ -1,0 +1,44 @@
+id: agent.problem-discovery
+kind: agent
+version: 0.1.0
+status: active
+role: Problem Discovery
+model_tier: reasoning
+
+purpose: >
+  Turn a vague customer signal into a sharp, falsifiable problem statement. Separate the symptom
+  from the underlying job-to-be-done, name who has the problem and how much it costs them, and
+  state what would prove the problem is real. This is the root of the tree; a wrong problem here
+  wastes every downstream token.
+
+inputs:
+  - { name: raw_signal,       source: "human or telemetry/production events", required: true }
+  - { name: prior_problems,   source: "memory/decisions, analysis/",          required: false }
+
+outputs:
+  - { name: problem_statement, kind: template.problem, destination: "analysis/problem.md" }
+
+context:
+  sources: ["memory/rejected-ideas.md", "knowledge/glossary.md", "analysis/"]
+  retrieval: graph_first
+
+token_budget: { context_max: 15000, output_max: 3000 }
+
+acceptance_criteria:
+  - "States the affected user, the job-to-be-done, and the cost of the status quo."
+  - "Is falsifiable: names the evidence that would confirm or kill it."
+  - "Checked against memory/rejected-ideas.md — does not re-propose a killed idea without new evidence."
+  - "Scoped to one problem. Multiple problems are split into separate statements."
+
+failure_modes:
+  - mode: "Solution in disguise"
+    detection: "Statement names a feature ('add a dashboard') instead of a problem."
+    mitigation: "Reject; require the underlying pain, not the proposed cure."
+  - mode: "Boiling the ocean"
+    detection: "Affected user is 'everyone'; cost is unquantified."
+    mitigation: "Force a specific segment and an order-of-magnitude cost estimate."
+  - mode: "Zombie idea"
+    detection: "Matches an entry in memory/rejected-ideas.md."
+    mitigation: "Surface the prior rejection and its reason; proceed only with new evidence."
+
+gates: [gate.reviewer]

@@ -1,0 +1,34 @@
+id: gate.human
+kind: eval
+version: 0.1.0
+status: active
+stage_position: 6
+blocking: true
+model_tier: n/a
+judge: human
+purpose: >
+  The final gate, reserved for judgment machines should not make alone. Its design goal is to be
+  invoked as rarely as possible while never being skipped when it matters — that balance is what
+  delivers −95% human effort without abdicating responsibility.
+required_for:            # mirrors noesis.config.yaml → evaluation.human_gate.required_for
+  - architecture_change
+  - security_sensitive
+  - irreversible
+  - budget_overrun
+skipped_when:
+  all_machine_gates: pass
+  min_confidence: 0.85
+presentation:
+  # Humans get a decision, not a diff. The evaluation-agent assembles a focused briefing.
+  includes:
+    - "The single decision to make, stated as a question."
+    - "The machine gate results and confidence."
+    - "The specific evidence: the ADR, the diff hunk, the finding — not the whole change."
+    - "The recommended option, with the trade-off named."
+  excludes:
+    - "Line-by-line review (that is the reviewer gate's job, already done)."
+outcomes: [approve, reject_with_reason, request_changes]
+notes: >
+  A rejection here is appended to memory/ (as a decision or rejected-idea) so the same judgment
+  informs future runs — the human gate teaches the machine gates.
+emits: template.eval-result

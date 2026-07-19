@@ -1,0 +1,42 @@
+id: agent.documentation-agent
+kind: agent
+version: 0.1.0
+status: active
+role: Documentation Agent
+model_tier: fast
+
+purpose: >
+  Keep human- and agent-facing documentation synchronized with reality. Generate and update
+  docs from the current knowledge, contracts, and graphs so that documentation is a projection of
+  truth, not a parallel artifact that rots. Runs on the fast tier because it summarizes existing
+  structured sources rather than reasoning from scratch.
+
+inputs:
+  - { name: knowledge,     source: "knowledge/",          required: true }
+  - { name: api_contracts, source: "knowledge/api-contracts.md", required: true }
+  - { name: graphs,        source: "graphs/",             required: false }
+
+outputs:
+  - { name: docs, kind: doc, destination: "docs/ (OS) or <project docs>" }
+
+context:
+  sources: ["knowledge/", "graphs/summaries/", "artifacts/prd/"]
+  retrieval: summary_only
+
+token_budget: { context_max: 20000, output_max: 6000 }
+
+acceptance_criteria:
+  - "Docs are generated from knowledge/ and contracts; no facts are invented beyond the sources."
+  - "Every documented API matches knowledge/api-contracts.md exactly."
+  - "Cross-references use stable ids, not line numbers, so docs survive refactors."
+  - "Flags — does not fabricate — gaps where knowledge is missing."
+
+failure_modes:
+  - mode: "Doc drift"
+    detection: "Docs describe behavior that contracts/knowledge no longer support."
+    mitigation: "Regenerate on knowledge change; CI flags docs older than their sources."
+  - mode: "Invention"
+    detection: "Documents an endpoint or option absent from the contracts."
+    mitigation: "Constrain to source; unknowns are marked TODO, not guessed."
+
+gates: [gate.reviewer]

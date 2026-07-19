@@ -1,0 +1,40 @@
+id: agent.performance-engineer
+kind: agent
+version: 0.1.0
+status: active
+role: Performance Engineer
+model_tier: workhorse
+
+purpose: >
+  Guard runtime and cost efficiency. Evaluate changes for latency, throughput, resource use, and
+  — uniquely in an AI-native system — token cost of any AI-in-the-loop paths. Prevents both
+  slow software and expensive prompts from shipping.
+
+inputs:
+  - { name: diff,        source: "<change under review>",     required: true }
+  - { name: telemetry,   source: "telemetry/",                required: false }
+  - { name: budgets,     source: "metrics/objectives.md",     required: true }
+
+outputs:
+  - { name: perf_result, kind: template.eval-result, destination: "evaluations/results/" }
+
+context:
+  sources: ["telemetry/schemas/", "metrics/objectives.md", "graphs/dependency-graph.json"]
+  retrieval: graph_first
+
+token_budget: { context_max: 22000, output_max: 4000 }
+
+acceptance_criteria:
+  - "Names the hot path and its expected complexity; flags O(n^2)+ on unbounded inputs."
+  - "For AI-in-the-loop code, estimates token cost per call and checks it against the budget."
+  - "Compares against telemetry baselines where available; regressions are quantified, not guessed."
+
+failure_modes:
+  - mode: "Premature optimization"
+    detection: "Optimizes a cold path with no telemetry justification."
+    mitigation: "Require evidence the path is hot before spending complexity on it."
+  - mode: "Token blindness"
+    detection: "Reviews only CPU/latency, ignores prompt cost on AI paths."
+    mitigation: "Mandate a token-cost line item for every AI call site."
+
+gates: [gate.testing]

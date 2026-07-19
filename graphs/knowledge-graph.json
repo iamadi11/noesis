@@ -1,0 +1,29 @@
+{
+  "graph": "knowledge",
+  "version": "0.1.0",
+  "generated_at": "2026-07-18T00:00:00Z",
+  "generated_by": "agent.repository-indexer",
+  "source_commit": "seed",
+  "_note": "Seed graph modeling Noesis itself (dogfood). The repository-indexer overwrites this with the real project's knowledge graph. It doubles as retrieval.semantic_index in noesis.config.yaml.",
+  "nodes": [
+    { "id": "concept:token-efficiency", "type": "concept", "label": "Token efficiency (Objective #2)", "summary_ref": "summaries/concepts/token-efficiency.md" },
+    { "id": "concept:graph-first-retrieval", "type": "concept", "label": "Graph-first retrieval", "summary_ref": "summaries/concepts/graph-first-retrieval.md" },
+    { "id": "concept:learning-loop", "type": "concept", "label": "Continuous learning loop (Objective #4)", "summary_ref": "summaries/concepts/learning-loop.md" },
+    { "id": "concept:anti-slop", "type": "concept", "label": "Anti-slop via evaluation (Objective #3)", "summary_ref": "summaries/concepts/anti-slop.md" },
+    { "id": "decision:ADR-0002", "type": "decision", "label": "Graph-first retrieval; never send whole repo" },
+    { "id": "decision:ADR-0004", "type": "decision", "label": "Trust is per-artifact (gates), not per-model" },
+    { "id": "decision:ADR-0005", "type": "decision", "label": "Learning loop enforced in CI" },
+    { "id": "artifact:graphs", "type": "artifact", "label": "graphs/ (module/dep/arch/knowledge)" },
+    { "id": "artifact:evaluations", "type": "artifact", "label": "evaluations/ (gates + rubrics)" },
+    { "id": "artifact:automation", "type": "artifact", "label": "automation/protocols" }
+  ],
+  "edges": [
+    { "from": "decision:ADR-0002", "to": "concept:graph-first-retrieval", "rel": "evidences" },
+    { "from": "concept:graph-first-retrieval", "to": "concept:token-efficiency", "rel": "relates", "weight": 1.0 },
+    { "from": "artifact:graphs", "to": "concept:graph-first-retrieval", "rel": "relates", "weight": 1.0 },
+    { "from": "artifact:automation", "to": "concept:token-efficiency", "rel": "relates", "weight": 0.8 },
+    { "from": "decision:ADR-0004", "to": "concept:anti-slop", "rel": "evidences" },
+    { "from": "artifact:evaluations", "to": "concept:anti-slop", "rel": "relates", "weight": 1.0 },
+    { "from": "decision:ADR-0005", "to": "concept:learning-loop", "rel": "evidences" }
+  ]
+}

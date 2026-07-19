@@ -1,0 +1,84 @@
+# The agent contract schema. Every file in agents/specs/ MUST validate against this.
+# An agent is a *contract*, not code. It declares what it consumes, produces, and is judged by.
+# Runtime that executes agents (an SDK, a harness) reads these specs; it never hard-codes them.
+#
+# This is a JSON-Schema-shaped description expressed in YAML for readability.
+
+$id: noesis/agent.schema
+version: 0.1.0
+type: object
+required: [id, kind, version, role, purpose, inputs, outputs, context, token_budget, acceptance_criteria, failure_modes]
+additionalProperties: false
+
+properties:
+  id:      { type: string, pattern: "^agent\\.[a-z0-9-]+$", description: "Stable primary key, e.g. agent.architect" }
+  kind:    { const: agent }
+  version: { type: string, description: "semver" }
+  status:  { enum: [draft, active, deprecated] }
+  role:    { type: string, description: "Human-readable job title" }
+  model_tier:
+    enum: [reasoning, workhorse, fast]
+    description: "Which noesis.config.yaml → models tier this agent runs on. Match difficulty to cost."
+
+  purpose:
+    type: string
+    description: "One paragraph. The single job this agent exists to do. If it needs 'and', consider splitting it."
+
+  inputs:
+    type: array
+    description: "Typed input contracts. Each references artifacts by id/kind, not raw text."
+    items:
+      type: object
+      required: [name, source, required]
+      properties:
+        name:     { type: string }
+        source:   { type: string, description: "artifact id, folder, or upstream agent id" }
+        required: { type: boolean }
+
+  outputs:
+    type: array
+    description: "Typed output artifacts this agent is accountable for producing."
+    items:
+      type: object
+      required: [name, kind, destination]
+      properties:
+        name:        { type: string }
+        kind:        { type: string, description: "template id it must conform to, if any" }
+        destination: { type: string, description: "folder/path the artifact is written to" }
+
+  context:
+    type: object
+    description: "What the agent is allowed to retrieve. The retrieval budget is enforced here."
+    required: [sources, retrieval]
+    properties:
+      sources:   { type: array, items: { type: string }, description: "graph nodes / folders / ids it may read" }
+      retrieval: { enum: [graph_first, summary_only, full_file_allowed], description: "escalating cost; default graph_first" }
+
+  token_budget:
+    type: object
+    required: [context_max, output_max]
+    description: "Hard ceilings. Exceeding either fails the run at the builder gate."
+    properties:
+      context_max: { type: integer }
+      output_max:  { type: integer }
+
+  acceptance_criteria:
+    type: array
+    description: "Checkable conditions the output must meet. These become the agent's rubric."
+    items: { type: string }
+
+  failure_modes:
+    type: array
+    description: "Known ways this agent fails, and the mitigation the runtime should apply."
+    items:
+      type: object
+      required: [mode, detection, mitigation]
+      properties:
+        mode:       { type: string }
+        detection:  { type: string }
+        mitigation: { type: string }
+
+  gates:
+    type: array
+    description: "Gate ids (evaluations/gates) this agent's output must pass before handoff."
+    items: { type: string }

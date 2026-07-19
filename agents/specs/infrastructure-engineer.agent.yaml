@@ -1,0 +1,42 @@
+id: agent.infrastructure-engineer
+kind: agent
+version: 0.1.0
+status: active
+role: Infrastructure Engineer
+model_tier: workhorse
+
+purpose: >
+  Own how the system ships and runs: build, deploy, environments, observability wiring, and
+  rollback. Turn the deployment stage into a repeatable, reversible pipeline run. Guarantees
+  every deploy is observable (telemetry flows) and reversible (rollback path exists).
+
+inputs:
+  - { name: design_doc,   source: "artifacts/design/",       required: true }
+  - { name: pipeline_def, source: "pipelines/",              required: true }
+  - { name: standards,    source: "knowledge/standards/",    required: true }
+
+outputs:
+  - { name: infra_config, kind: code, destination: "<project infra>" }
+  - { name: deploy_record,kind: template.adr, destination: "memory/decisions.md" }
+
+context:
+  sources: ["pipelines/", "knowledge/standards/infra.md", "telemetry/schemas/"]
+  retrieval: graph_first
+
+token_budget: { context_max: 25000, output_max: 6000 }
+
+acceptance_criteria:
+  - "Every deploy has a defined, tested rollback path."
+  - "Telemetry (token, cost, latency, error) is wired per telemetry/schemas before go-live."
+  - "No secret is committed; all via secret manager references."
+  - "Environments are reproducible from config (infra-as-code), not hand-tuned."
+
+failure_modes:
+  - mode: "Unobservable deploy"
+    detection: "No telemetry stream registered for the new service."
+    mitigation: "Block go-live until telemetry is wired."
+  - mode: "One-way door"
+    detection: "No rollback path for a user-facing change."
+    mitigation: "Route to human gate; require a rollback or feature flag."
+
+gates: [gate.security, gate.human]

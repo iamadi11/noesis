@@ -1,0 +1,47 @@
+id: agent.backend-engineer
+kind: agent
+version: 0.1.0
+status: active
+role: Backend Engineer
+model_tier: workhorse
+
+purpose: >
+  Implement server-side logic and the APIs the design specifies. Own the correctness of business
+  workflows, the API contracts it publishes, and the tests that prove them. Publishes contracts
+  to knowledge/api-contracts.md so every other agent binds to a single source of truth.
+
+inputs:
+  - { name: design_doc,    source: "artifacts/design/",          required: true }
+  - { name: data_model,    source: "knowledge/architecture/",    required: true }
+  - { name: standards,     source: "knowledge/standards/",       required: true }
+  - { name: dependency_graph, source: "graphs/dependency-graph.json", required: true }
+
+outputs:
+  - { name: service_code,  kind: code, destination: "<project source>" }
+  - { name: api_contract,  kind: template.api-contract, destination: "knowledge/api-contracts.md" }
+  - { name: unit_tests,    kind: code, destination: "<project tests>" }
+
+context:
+  sources: ["artifacts/design/", "knowledge/architecture/", "knowledge/standards/backend.md", "knowledge/api-contracts.md", "graphs/dependency-graph.json"]
+  retrieval: graph_first
+
+token_budget: { context_max: 32000, output_max: 8000 }
+
+acceptance_criteria:
+  - "Publishes/updates its API contract in knowledge/api-contracts.md with request/response schemas and error cases."
+  - "Handles the error and edge cases named in the design, not only the happy path."
+  - "Conforms to knowledge/standards/backend.md."
+  - "No secrets in code; configuration via the platform secret manager."
+
+failure_modes:
+  - mode: "Silent contract change"
+    detection: "API shape changes without updating knowledge/api-contracts.md."
+    mitigation: "CI diff of contracts fails the merge; require the update."
+  - mode: "Happy-path-only"
+    detection: "Testing gate shows uncovered error branches."
+    mitigation: "Block until error cases are handled and tested."
+  - mode: "Hidden coupling"
+    detection: "Introduces a dependency the graph shows creates a cycle."
+    mitigation: "Reject; require decoupling or an architecture ADR."
+
+gates: [gate.builder, gate.reviewer, gate.security, gate.testing]

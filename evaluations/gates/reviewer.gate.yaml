@@ -1,0 +1,30 @@
+id: gate.reviewer
+kind: eval
+version: 0.1.0
+status: active
+stage_position: 2
+blocking: true
+model_tier: reasoning
+judge: agent.reviewer
+purpose: >
+  The general correctness-and-craft gate. Verifies the producer's own acceptance criteria, checks
+  consistency with knowledge/ and standards, and hunts for slop. The workhorse quality gate that
+  most artifacts pass through.
+applies_rubric: rubric.reviewer
+checks:
+  - id: acceptance
+    check: "Each of the producer agent's acceptance_criteria is verified pass/fail WITH evidence."
+    on_fail: "Return to producer with the failing criteria."
+  - id: consistency
+    check: "No contradiction with knowledge/architecture, api-contracts, or memory/decisions."
+  - id: anti_slop
+    check: "No duplicated logic, hallucinated/absent APIs, dead abstractions, or copy-paste drift."
+  - id: standards
+    check: "Conforms to knowledge/standards/engineering.md (+ surface standard if applicable)."
+  - id: confidence
+    check: "Emit a calibrated confidence score in [0,1] for the auto-merge policy."
+pass_when: "acceptance, consistency, anti_slop, standards all pass"
+notes: >
+  A pass without per-criterion evidence is itself a fail (agent.reviewer failure mode
+  'Agreeableness'). Style-only nits never block; they are logged as auto-fixable.
+emits: template.eval-result

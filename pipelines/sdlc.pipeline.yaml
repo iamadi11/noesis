@@ -1,0 +1,118 @@
+id: pipeline.sdlc
+kind: pipeline
+version: 0.1.0
+status: active
+owner: architect
+updated: 2026-07-18
+
+# The canonical, machine-executable definition of the whole lifecycle. A runtime executes this;
+# the playbooks/ explain it for humans. CI checks the two stay in sync.
+#
+# Each stage is a versioned HANDOFF: producer agent → typed output → gate(s) → next stage.
+# A stage cannot start until its `needs` (prior gated outputs) exist. The loop closes: the last
+# stage enriches the context the first stage of the NEXT problem retrieves.
+
+description: >
+  Customer Problem → Research → Evidence → PRD → Architecture → Design → Implementation →
+  Testing → Evaluation → Deployment → Telemetry → Learning → Knowledge Update ↺
+
+stages:
+  - id: problem
+    playbook: playbook.problem
+    producer: agent.problem-discovery
+    outputs: [analysis/problem.md]
+    gates: [gate.reviewer]
+    needs: []
+
+  - id: research
+    playbook: playbook.problem
+    producer: agent.market-research
+    outputs: [analysis/research.md]
+    gates: [gate.reviewer]
+    needs: [problem]
+
+  - id: evidence
+    playbook: playbook.problem
+    producer: agent.market-research
+    outputs: [analysis/evidence.md]
+    gates: [gate.reviewer]
+    needs: [research]
+
+  - id: prd
+    playbook: playbook.prd
+    producer: agent.product-manager
+    outputs: [artifacts/prd/]
+    gates: [gate.reviewer, gate.human]
+    needs: [evidence]
+
+  - id: architecture
+    playbook: playbook.architecture
+    producer: agent.architect
+    outputs: [knowledge/architecture/, memory/decisions.md]
+    gates: [gate.architecture, gate.human]
+    needs: [prd]
+
+  - id: design
+    playbook: playbook.architecture
+    producer: agent.architect
+    outputs: [artifacts/design/, knowledge/api-contracts.md]
+    gates: [gate.architecture]
+    needs: [architecture]
+
+  - id: implementation
+    playbook: playbook.implementation
+    producer: [agent.frontend-engineer, agent.backend-engineer, agent.database-engineer]
+    outputs: ["<project source>", "<project tests>", knowledge/api-contracts.md]
+    gates: [gate.builder, gate.reviewer, gate.security]
+    needs: [design]
+    parallel: true   # engineers bind to registered contracts, so surfaces build concurrently
+
+  - id: testing
+    playbook: playbook.implementation
+    producer: agent.testing-engineer
+    outputs: ["<project tests>", evaluations/results/]
+    gates: [gate.testing]
+    needs: [implementation]
+
+  - id: evaluation
+    playbook: playbook.implementation
+    producer: agent.evaluation-agent
+    outputs: [evaluations/results/]
+    gates: []          # this stage RUNS the chain; the evaluation-agent aggregates the verdict
+    needs: [testing]
+
+  - id: deployment
+    playbook: playbook.deploy-learn
+    producer: agent.infrastructure-engineer
+    outputs: ["<deploy>", memory/decisions.md]
+    gates: [gate.security, gate.human]
+    needs: [evaluation]
+
+  - id: telemetry
+    playbook: playbook.deploy-learn
+    producer: runtime
+    outputs: [telemetry/rollups/]
+    gates: []
+    needs: [deployment]
+
+  - id: learning
+    playbook: playbook.deploy-learn
+    producer: agent.prompt-optimizer
+    outputs: [prompts/library/, experiments/]
+    gates: [gate.reviewer]
+    needs: [telemetry]
+
+  - id: knowledge_update
+    playbook: playbook.deploy-learn
+    producer: agent.knowledge-manager
+    outputs: [knowledge/, memory/, graphs/, metrics/]
+    gates: [gate.reviewer]
+    needs: [learning]
+    feeds: problem     # ← the loop. Enriched context lowers the cost of the next problem.
+
+# Cross-cutting agents run continuously, not as a stage:
+#   agent.repository-indexer  — refreshes graphs/ on change-detection
+#   agent.documentation-agent — regenerates docs from knowledge/ on change
+policy:
+  fail_fast: true
+  human_gate: from noesis.config.yaml

@@ -1,0 +1,42 @@
+id: agent.evaluation-agent
+kind: agent
+version: 0.1.0
+status: active
+role: Evaluation Agent
+model_tier: workhorse
+
+purpose: >
+  Orchestrate the evaluation chain. Given an artifact and its stage, run the required gates in
+  order (fail-fast), collect per-gate results, compute an overall verdict and confidence, and
+  decide — per noesis.config.yaml — whether to auto-merge, escalate to the human gate, or return
+  to the producer. It does not judge; it conducts the judges.
+
+inputs:
+  - { name: artifact,   source: "<output to evaluate>", required: true }
+  - { name: stage,      source: "pipelines/sdlc.pipeline.yaml", required: true }
+  - { name: gate_defs,  source: "evaluations/gates/",  required: true }
+
+outputs:
+  - { name: chain_result, kind: template.eval-result, destination: "evaluations/results/" }
+
+context:
+  sources: ["evaluations/gates/", "evaluations/rubrics/", "noesis.config.yaml"]
+  retrieval: summary_only
+
+token_budget: { context_max: 18000, output_max: 4000 }
+
+acceptance_criteria:
+  - "Runs the stage's gates in configured order and stops at the first hard failure (fail-fast)."
+  - "Aggregates per-gate scores into an overall verdict + confidence."
+  - "Applies the human-gate policy: escalates architecture/security/irreversible/budget-overrun cases."
+  - "Writes a single, complete result record linking every sub-gate result and the run's telemetry id."
+
+failure_modes:
+  - mode: "Gate skipping"
+    detection: "A required gate for the stage produced no result."
+    mitigation: "Treat missing gate as fail; never pass a chain with a hole."
+  - mode: "Over-escalation"
+    detection: "Routes everything to humans, defeating Objective #1."
+    mitigation: "Escalate only the categories in evaluation.human_gate; auto-merge the rest when confident."
+
+gates: []

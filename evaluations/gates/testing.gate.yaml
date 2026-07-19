@@ -1,0 +1,25 @@
+id: gate.testing
+kind: eval
+version: 0.1.0
+status: active
+stage_position: 5
+blocking: true
+model_tier: workhorse
+judge: agent.testing-engineer
+purpose: >
+  Proves the change satisfies the PRD's acceptance criteria by running tests and measuring
+  requirement coverage (not just line coverage). Also the home of the performance-engineer's
+  token/latency budget check for AI-in-the-loop paths.
+applies_rubric: rubric.testing
+checks:
+  - id: requirement_coverage
+    check: "Every PRD acceptance criterion maps to at least one passing test."
+    on_fail: "Return to testing-engineer; missing criteria are untested."
+  - id: edge_cases
+    check: "Error and edge cases named in the design are exercised."
+  - id: green
+    check: "The suite passes; no flaky test was retried into a green."
+  - id: perf_budget
+    check: "AI-in-the-loop paths stay within the token/latency budget (agent.performance-engineer)."
+pass_when: "requirement_coverage, edge_cases, green all pass"
+emits: template.eval-result

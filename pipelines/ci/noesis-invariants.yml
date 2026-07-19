@@ -1,0 +1,69 @@
+# Noesis invariants — CI workflow template.
+# Copy to .github/workflows/ in the repo that vendors Noesis. This is the enforcement layer:
+# the principles in docs/principles.md become build-breaking checks here. Steps are described as
+# intent + the check they perform; wire them to your runner/scripts in v0.2 (see docs/roadmap.md).
+
+name: noesis-invariants
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history: change-detection needs the base commit
+
+      # 1. Every authored artifact has valid frontmatter (CONVENTIONS §1).
+      - name: frontmatter
+        run: |
+          echo "validate - frontmatter present + well-formed on specs/prompts/templates/gates"
+
+      # 2. Structured artifacts validate against their schemas.
+      - name: schemas
+        run: |
+          echo "validate - agents/specs/* against agents/agent.schema.yaml"
+          echo "validate - graphs/*.json against graphs/schemas/graph.schema.json"
+
+      # 3. Graph integrity — the retrieval index must be trustworthy.
+      - name: graph-integrity
+        run: |
+          echo "check - no dangling edges; every node has a file-level summary; source_commit == HEAD"
+
+      # 4. No stale knowledge (ADR-0005). The keystone invariant of Objective #4.
+      - name: knowledge-freshness
+        run: |
+          echo "if change-detection blast_radius touches architecture/contracts"
+          echo "then knowledge/architecture or knowledge/api-contracts MUST change in this PR, else FAIL"
+
+      # 5. API contract sync — no silent contract drift.
+      - name: contract-sync
+        run: |
+          echo "check - changed API shapes are reflected in knowledge/api-contracts.md"
+
+      # 6. Evaluation chain complete — no merge without a passing gate result.
+      - name: eval-chain
+        run: |
+          echo "check - evaluations/results/ has a passing chain result for this change's required_gates"
+
+      # 7. No business logic in the OS (ADR-0003).
+      - name: os-purity
+        run: |
+          echo "lint - automation/ has no domain identifiers; business rules live in memory/business-rules.md"
+
+      # 8. Playbook/pipeline sync.
+      - name: flow-sync
+        run: |
+          echo "check - every pipeline stage has a playbook and vice-versa"
+
+  # Objective tracking — surfaces the four numbers on every run (Phase 9).
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: emit-objective-metrics
+        run: |
+          echo "compute + publish - tokens/PR, human-touches/PR, gate pass-rate, cross-project reuse"

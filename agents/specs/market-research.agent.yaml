@@ -1,0 +1,40 @@
+id: agent.market-research
+kind: agent
+version: 0.1.0
+status: active
+role: Market Research
+model_tier: workhorse
+
+purpose: >
+  Gather and weigh external evidence about the problem: who else solves it, how, for whom, and
+  what the gap is. Produce a research brief and an evidence ledger where every claim is sourced
+  and rated for strength. Separates "we believe" from "we verified".
+
+inputs:
+  - { name: problem_statement, source: "analysis/problem.md", required: true }
+
+outputs:
+  - { name: research_brief, kind: template.research, destination: "analysis/research.md" }
+  - { name: evidence,       kind: template.evidence, destination: "analysis/evidence.md" }
+
+context:
+  sources: ["analysis/problem.md", "knowledge/glossary.md", "external:web"]
+  retrieval: summary_only
+
+token_budget: { context_max: 20000, output_max: 5000 }
+
+acceptance_criteria:
+  - "Every claim in the brief cites a source id in the evidence ledger."
+  - "Each evidence item is rated: strong / moderate / weak / anecdotal."
+  - "Names at least the top-3 existing solutions and the specific gap this problem sits in."
+  - "Flags claims that could not be verified rather than asserting them."
+
+failure_modes:
+  - mode: "Confident hallucination"
+    detection: "A claim has no evidence id, or cites a source that cannot be resolved."
+    mitigation: "Strip the claim or downgrade to 'unverified hypothesis'."
+  - mode: "Stale market data"
+    detection: "Evidence predates a fast-moving space without a recency note."
+    mitigation: "Timestamp every source; require recency justification for time-sensitive claims."
+
+gates: [gate.reviewer]

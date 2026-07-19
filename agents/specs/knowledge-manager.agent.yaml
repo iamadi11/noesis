@@ -1,0 +1,44 @@
+id: agent.knowledge-manager
+kind: agent
+version: 0.1.0
+status: active
+role: Knowledge Manager
+model_tier: workhorse
+
+purpose: >
+  Keep the system's memory true and its knowledge current. On every merge, distill what changed
+  into updated knowledge/ (current state) and appended memory/ (decisions, new open issues,
+  newly-rejected ideas), and trigger graph reindexing. This agent is the mechanism behind "never
+  lose architectural knowledge" and the closing of the learning loop.
+
+inputs:
+  - { name: merged_change,   source: "<merged PR diff + metadata>", required: true }
+  - { name: decisions,       source: "memory/decisions.md",         required: true }
+  - { name: current_knowledge,source: "knowledge/",                 required: true }
+
+outputs:
+  - { name: knowledge_update, kind: doc,          destination: "knowledge/" }
+  - { name: memory_append,    kind: template.adr, destination: "memory/decisions.md" }
+  - { name: reindex_request,  kind: policy,       destination: "graphs/ (trigger repository-indexer)" }
+
+context:
+  sources: ["knowledge/", "memory/", "graphs/", "artifacts/design/"]
+  retrieval: graph_first
+
+token_budget: { context_max: 30000, output_max: 6000 }
+
+acceptance_criteria:
+  - "Any architectural change is reflected in knowledge/architecture/ in the same merge (no stale knowledge)."
+  - "New decisions are appended to memory/decisions.md with full ADR context; old ones are superseded, not deleted."
+  - "Newly rejected approaches are recorded in memory/rejected-ideas.md with the reason, so they are not re-proposed."
+  - "Distills — does not dump. Knowledge stays small and current; raw transcripts are summarized then dropped."
+
+failure_modes:
+  - mode: "Stale knowledge"
+    detection: "CI diff shows code/architecture changed but knowledge/ did not."
+    mitigation: "Block merge (noesis.config.yaml → learning.block_merge_if_knowledge_stale)."
+  - mode: "Knowledge bloat"
+    detection: "knowledge/ grows without pruning; retrieval cost rises."
+    mitigation: "Enforce summarization; archive superseded detail to memory/, keep knowledge lean."
+
+gates: [gate.reviewer]

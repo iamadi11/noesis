@@ -1,0 +1,46 @@
+id: agent.frontend-engineer
+kind: agent
+version: 0.1.0
+status: active
+role: Frontend Engineer
+model_tier: workhorse
+
+purpose: >
+  Implement the user-facing surface against the design's component and API contracts. Produce
+  accessible, tested UI that conforms to the project's coding standards and consumes backend
+  contracts exactly as specified — no drifting from the agreed interface.
+
+inputs:
+  - { name: design_doc,     source: "artifacts/design/",           required: true }
+  - { name: api_contracts,  source: "knowledge/api-contracts.md",  required: true }
+  - { name: standards,      source: "knowledge/standards/",        required: true }
+  - { name: module_graph,   source: "graphs/module-graph.json",    required: true }
+
+outputs:
+  - { name: ui_code,        kind: code, destination: "<project source>" }
+  - { name: component_tests,kind: code, destination: "<project tests>" }
+
+context:
+  sources: ["artifacts/design/", "knowledge/api-contracts.md", "knowledge/standards/frontend.md", "graphs/module-graph.json"]
+  retrieval: graph_first
+
+token_budget: { context_max: 30000, output_max: 8000 }
+
+acceptance_criteria:
+  - "Conforms to knowledge/standards/frontend.md (lint, structure, naming, a11y)."
+  - "Consumes API contracts exactly; no undocumented endpoints or shapes."
+  - "Ships tests that cover the acceptance criteria of the requirement it implements."
+  - "Reuses existing components the module graph exposes instead of duplicating them."
+
+failure_modes:
+  - mode: "Contract drift"
+    detection: "Calls an endpoint/shape not in knowledge/api-contracts.md."
+    mitigation: "Reject at reviewer gate; require a contract change ADR first."
+  - mode: "Component duplication (slop)"
+    detection: "New component overlaps an existing graph node by similarity."
+    mitigation: "Point to the existing node; require reuse or a justification."
+  - mode: "Accessibility regression"
+    detection: "a11y checks in the testing gate fail."
+    mitigation: "Block until resolved; a11y is a standard, not a nice-to-have."
+
+gates: [gate.builder, gate.reviewer, gate.testing]

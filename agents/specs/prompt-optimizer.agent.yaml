@@ -1,0 +1,43 @@
+id: agent.prompt-optimizer
+kind: agent
+version: 0.1.0
+status: active
+role: Prompt Optimizer
+model_tier: reasoning
+
+purpose: >
+  Improve the prompt library from evidence. Read telemetry and evaluation results, find prompts
+  that underperform (low pass rate, high token cost, frequent rework), propose revised versions,
+  and register them as experiments so a change is promoted only when it measurably wins. Turns
+  the prompt library into a system that compounds instead of ossifying.
+
+inputs:
+  - { name: eval_results, source: "evaluations/results/", required: true }
+  - { name: telemetry,    source: "telemetry/",          required: true }
+  - { name: prompts,      source: "prompts/library/",    required: true }
+
+outputs:
+  - { name: prompt_revision, kind: prompt, destination: "prompts/library/" }
+  - { name: experiment,      kind: template.experiment, destination: "experiments/" }
+
+context:
+  sources: ["prompts/library/", "evaluations/results/", "telemetry/rollups/", "metrics/"]
+  retrieval: summary_only
+
+token_budget: { context_max: 26000, output_max: 6000 }
+
+acceptance_criteria:
+  - "Every proposed prompt change is backed by a metric it aims to move (pass rate, tokens, rework)."
+  - "Changes ship as experiments with a control and a variant, never as a silent overwrite."
+  - "A variant is promoted to status:active only after it beats control on the target metric."
+  - "Reduces tokens without reducing quality — a cheaper prompt that lowers pass rate is rejected."
+
+failure_modes:
+  - mode: "Prompt churn"
+    detection: "Frequent edits with no measured improvement."
+    mitigation: "Gate changes behind experiments; require a winning verdict to promote."
+  - mode: "Overfitting to recent runs"
+    detection: "Variant tuned to a handful of cases, regresses broadly."
+    mitigation: "Require a minimum sample size before promotion."
+
+gates: [gate.reviewer]
