@@ -13,9 +13,14 @@ See the discovery + design trail (flowed through the Noesis pipeline):
 - `artifacts/prd/prd-v1-risk-triage.md` — the PRD.
 - `artifacts/design/tech-design-mvp.md` — architecture + milestones.
 
-## Status: **M0 — skeleton** (prove the pipe: upload → store → normalized rows)
+## Status: **M1 — the janitor** (upload → geocode + clean → inspect)
 
-M0 has no geocoding or risk logic yet — that's M1/M2 (see the tech design).
+- M0 pipe: upload CSV → store → raw rows in PostGIS.
+- **M1 (the moat):** heuristic column mapping → geocode (cache-first) → PostGIS point +
+  confidence + source. Low-confidence / unresolved rows are **flagged, never dropped**. See the
+  book view at `/books/:id` — run the janitor and inspect every row.
+- Geocoder: Nominatim (OSM) by default — free, no key, behind `lib/geocode.ts` so it's swappable.
+- Risk answers (NL question → hazard join → ranked table) are **M2** (see the tech design).
 
 ## Setup
 

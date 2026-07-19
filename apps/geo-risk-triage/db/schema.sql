@@ -36,3 +36,15 @@ CREATE TABLE IF NOT EXISTS property (
 
 CREATE INDEX IF NOT EXISTS property_book_id_idx ON property(book_id);
 CREATE INDEX IF NOT EXISTS property_geom_gix ON property USING GIST (geom);
+
+-- M1: geocode cache. Key = normalized query string. Doubles as the data flywheel and the
+-- cost control (never pay to geocode the same address twice). A NULL lat/lon caches a MISS
+-- so we don't re-hit the provider for addresses it can't resolve.
+CREATE TABLE IF NOT EXISTS geocode_cache (
+  query_norm  TEXT PRIMARY KEY,
+  lat         DOUBLE PRECISION,
+  lon         DOUBLE PRECISION,
+  confidence  REAL,
+  source      TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
