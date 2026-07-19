@@ -53,8 +53,10 @@ These are the axioms. Everything else is derived. See [`docs/principles.md`](doc
    under which prompt version, is always recoverable.
 6. **The system improves itself.** Each project leaves the OS smarter: better summaries, better
    prompts, better standards. Learning is a build step, not a hope.
-7. **No business logic lives here.** This repo is domain-neutral. If it only makes sense for one
-   product, it belongs in that product's repo, not in Noesis.
+7. **No business logic lives in the OS.** The OS packages (`agents/`, `automation/`, `knowledge/`,
+   etc.) are domain-neutral. This repo is a **monorepo**: products vendor the OS and live isolated
+   under [`apps/`](apps/) — their business logic stays there, never in the OS folders. The
+   `os-purity` CI invariant lints only the OS paths, so products can't leak into them.
 
 ---
 
